@@ -215,3 +215,43 @@ smp_size_or <- function(p1, p0, r, cl, f_r, deff) {
   return(smp_size_tab)
 }
 
+
+
+################################################################
+#                                                              #
+#   Precision given a fixed sample size for Risk Differences   #
+#                                                              #
+################################################################
+
+
+precision_rd <- function(rsk_e, rsk_ne, ratio_ene, c_level, exp_size, deff) {
+  require(tidyverse, quietly = T)
+
+  z <- qnorm(1 - (1 - c_level) / 2)
+
+  precision_tab <- tibble(
+    f = 2 * z * sqrt(deff) * sqrt((ratio_ene * rsk_e * (1 - rsk_e) + rsk_ne * (1 - rsk_ne)) / (ratio_ene * exp_size)),
+    rd = rsk_e - rsk_ne,
+    lci = rd - z * sqrt(deff) * sqrt((ratio_ene * rsk_e * (1 - rsk_e) + rsk_ne * (1 - rsk_ne)) / (ratio_ene * exp_size)),
+    uci = rd + z * sqrt(deff) * sqrt((ratio_ene * rsk_e * (1 - rsk_e) + rsk_ne * (1 - rsk_ne)) / (ratio_ene * exp_size))
+    )
+
+  message(paste(
+    paste(
+      paste(
+        paste(
+          paste(
+            paste(
+              paste("compatibility level precision of", precision_tab$f, sep = " "),
+              "given a fixed sample size of", sep = ", "),
+            exp_size + exp_size*ratio_ene, sep = " "),
+          "design effect of", sep = ", "),
+        c_level, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
+    ratio_ene, sep = " "))
+
+  names(precision_tab) <- c("CI_Width", "Risk_Diff", "Lower_CI", "Upper_CI")
+
+  return(precision_tab)
+}
+
+precision_rd(0.026, 0.006, 1, .95, 17478, 1.57) ### checking with NHIS hopelessness
