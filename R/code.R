@@ -246,7 +246,7 @@ precision_rd <- function(rsk_e, rsk_ne, ratio_ene, c_level, exp_size, deff) {
               "given a fixed sample size of", sep = ", "),
             exp_size + exp_size*ratio_ene, sep = " "),
           "design effect of", sep = ", "),
-        c_level, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
+        deff, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
     ratio_ene, sep = " "))
 
   names(precision_tab) <- c("CI_Width", "Risk_Diff", "Lower_CI", "Upper_CI")
