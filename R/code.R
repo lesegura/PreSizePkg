@@ -7,11 +7,11 @@ library(tidyverse, quietly = T)
 #######################################
 
 # BEFORE calculating the sample size based on precision for clustered data, the user needs:
-#     p1 = the risk in the Exposed,
-#     p0 = the risk in the Unexposed
-#     R = the ratio of Unexposed group size to the Exposed group size
-#     Z = the compatibility level
-#     F = the desired width of the compatibility interval for RD measures and ratio of ULCI / LLCI for relative measures
+#     rsk_e = the risk in the Exposed,
+#     rsk_ne = the risk in the Unexposed
+#     ratio_ene = the ratio of Unexposed group size to the Exposed group size
+#     c_level = the compatibility level
+#     ci_width = the desired width of the compatibility interval for RD measures and ratio of ULCI / LLCI for relative measures
 #     deff = the ratio of the variance in the sample with the clustered design to the variance if the sample had been done using
 #             simple random sampling
 
@@ -35,14 +35,14 @@ deff <- function(icc, n_cluster) {
 ##############################################
 
 
-smp_size_rd <- function(p1, p0, r, cl, f, deff) {
+smp_size_rd <- function(rsk_e, rsk_ne, ratio_ene, c_level, ci_width, deff) {
   require(tidyverse, quietly = T)
 
-  z <- qnorm(1 - (1 - cl) / 2)
+  z <- qnorm(1 - (1 - c_level) / 2)
 
   smp_size_tab <- tibble(
-    n1 = 4 * z ^ 2 * deff * (r * p1 * (1 - p1) + p0 * (1 - p0)) / (f ^ 2 * r),
-    n0 = n1 * r,
+    n1 = 4 * z ^ 2 * deff * (ratio_ene * rsk_e * (1 - rsk_e) + rsk_ne * (1 - rsk_ne)) / (ci_width ^ 2 * ratio_ene),
+    n0 = n1 * ratio_ene,
     N = n1 + n0) %>%
     round()
 
@@ -52,12 +52,12 @@ smp_size_rd <- function(p1, p0, r, cl, f, deff) {
     paste(
       paste(
         paste(
-          paste("sample size based on precision for a CI width of", f, sep = " "),
+          paste("Sample size based on precision for a CI width of", ci_width, sep = " "),
                   "a deff of", sep = ", "),
                    deff, sep = " "),
                    "a confidence level of", sep = ", "),
-                    cl, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
-                    r, sep = " "))
+                    c_level, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
+                    ratio_ene, sep = " "))
 
 
   return(smp_size_tab)
@@ -72,14 +72,14 @@ smp_size_rd(.4, .3, 3, .90, 0.08, 1) ### checking with Rothman & Greenland's exa
 #                                            #
 ##############################################
 
-smp_size_rr <- function(p1, p0, r, cl, f_r, deff) {
+smp_size_rr <- function(rsk_e,rsk_ne, ratio_ene, c_level, ci_ratio, deff) {
   require(tidyverse, quietly = T)
 
-  z <- qnorm(1 - (1 - cl) / 2)
+  z <- qnorm(1 - (1 - c_level) / 2)
 
   smp_size_tab <- tibble(
-    n1 = 4 * z ^ 2 * deff * (r * p0 * (1 - p1) + p1 * (1 - p0)) / (r * p1 * p0 * log(f_r) ^ 2),
-    n0 = n1 * r,
+    n1 = 4 * z ^ 2 * deff * (ratio_ene * rsk_ne * (1 - rsk_e) + rsk_e * (1 - rsk_ne)) / (ratio_ene * rsk_e * rsk_ne * log(ci_ratio) ^ 2),
+    n0 = n1 * ratio_ene,
     N = n1 + n0
   ) %>%
     round()
@@ -90,12 +90,12 @@ smp_size_rr <- function(p1, p0, r, cl, f_r, deff) {
         paste(
           paste(
             paste(
-              paste("sample size based on precision for ratio of ULCI to LLCI of", f_r, sep = " "),
+              paste("Sample size (N) based on precision for a ratio of ULCI to LLCI of", ci_ratio, sep = " "),
               "a deff of", sep = ", "),
             deff, sep = " "),
           "a confidence level of", sep = ", "),
-        cl, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
-    r, sep = " "))
+        c_level, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
+    ratio_ene, sep = " "))
 
 
   return(smp_size_tab)
@@ -109,14 +109,14 @@ smp_size_rr(0.4, 0.3, 3, .95, 2, 1) ### checking with Rothman & Greenland's exam
 #                                                         #
 ###########################################################
 
-smp_size_ird <- function(i1, i0, r, cl, f_r, deff) {
+smp_size_ird <- function(inc_e, inc_ne, ratio_ene, c_level, ci_ratio, deff) {
   require(tidyverse, quietly = T)
 
-  z <- qnorm(1 - (1 - cl) / 2)
+  z <- qnorm(1 - (1 - c_level) / 2)
 
   smp_size_tab <- tibble(
-    n1 = 4 * z ^ 2 * deff * (r * i0 + i1) / (r * f ^ 2),
-    n0 = n1 * r,
+    n1 = 4 * z ^ 2 * deff * (ratio_ene * inc_ne + inc_e) / (ratio_ene * ci_ratio ^ 2),
+    n0 = n1 * ratio_ene,
     N = n1 + n0
   ) %>%
     round()
@@ -127,7 +127,7 @@ smp_size_ird <- function(i1, i0, r, cl, f_r, deff) {
         paste(
           paste(
             paste(
-              paste("sample size based on precision for a CI width of", f, sep = " "),
+              paste("Sample size based on precision for a CI width of", f, sep = " "),
               "a deff of", sep = ", "),
             deff, sep = " "),
           "a confidence level of", sep = ", "),
@@ -145,15 +145,15 @@ smp_size_ird <- function(i1, i0, r, cl, f_r, deff) {
 #                                           #
 #############################################
 
-smp_size_irr <- function(i1, i0, r, cl, f_r, deff) {
+smp_size_irr <- function(inc_e, inc_ne, ratio_ene, c_level, ci_ratio, deff) {
   require(tidyverse, quietly = T)
 
-  z <- qnorm(1 - (1 - cl) / 2)
+  z <- qnorm(1 - (1 - c_level) / 2)
 
 
   smp_size_tab <- tibble(
-    n1 = 4 * z ^ 2 * deff * (r * i0 + i1) / (r * i1 * i0 * log(f_r) ^ 2),
-    n0 = n1 * r,
+    n1 = 4 * z ^ 2 * deff * (ratio_ene * inc_ne + inc_e) / (ratio_ene * inc_e * inc_ne * log(ci_ratio) ^ 2),
+    n0 = n1 * ratio_ene,
     N = n1 + n0
   ) %>%
     round()
@@ -164,12 +164,12 @@ smp_size_irr <- function(i1, i0, r, cl, f_r, deff) {
         paste(
           paste(
             paste(
-              paste("sample size based on precision for ratio of ULCI to LLCI of", f_r, sep = " "),
+              paste("sample size based on precision for ratio of ULCI to LLCI of", ci_ratio, sep = " "),
               "a deff of", sep = ", "),
             deff, sep = " "),
           "a confidence level of", sep = ", "),
-        cl, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
-    r, sep = " "))
+        c_level, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
+    ratio_ene, sep = " "))
 
 
   return(smp_size_tab)
@@ -185,15 +185,15 @@ smp_size_irr <- function(i1, i0, r, cl, f_r, deff) {
 ### r is the ratio of controls to cases, p1 is the prevalence of exposure in cases,
 ### p0 is the prevalence of exposure in controls.
 
-smp_size_or <- function(p1, p0, r, cl, f_r, deff) {
+smp_size_or <- function(rsk_e, rsk_ne, ratio_ene, c_level, ci_ratio, deff) {
   require(tidyverse, quietly = T)
 
-  z <- qnorm(1 - (1 - cl) / 2)
+  z <- qnorm(1 - (1 - c_level) / 2)
 
 
   smp_size_tab <- tibble(
-    m1 = 4 * z ^ 2 * deff * (r * p0 * (1 - p0) + p1 * (1 - p1)) / ((log(f_r) ^ 2) * (r * p1 * p0 * (1 - p1) * (1 - p0))),
-    m0 = m1 * r,
+    m1 = 4 * z ^ 2 * deff * (ratio_ene * rsk_ne * (1 - rsk_ne) + rsk_e * (1 - rsk_e)) / ((log(ci_ratio) ^ 2) * (r * rsk_e * rsk_ne * (1 - rsk_e) * (1 - rsk_ne))),
+    m0 = m1 * ratio_ene,
     M = m1 + m0
   ) %>%
     round()
@@ -204,12 +204,12 @@ smp_size_or <- function(p1, p0, r, cl, f_r, deff) {
         paste(
           paste(
             paste(
-              paste("sample size based on precision for ratio of ULCI to LLCI of", f_r, sep = " "),
+              paste("sample size based on precision for ratio of ULCI to LLCI of", ci_ratio, sep = " "),
               "a deff of", sep = ", "),
             deff, sep = " "),
           "a confidence level of", sep = ", "),
-        cl, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
-    r, sep = " "))
+        c_level, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
+    ratio_ene, sep = " "))
 
 
   return(smp_size_tab)
@@ -242,10 +242,10 @@ precision_rd <- function(rsk_e, rsk_ne, ratio_ene, c_level, exp_size, deff) {
         paste(
           paste(
             paste(
-              paste("compatibility level precision of", precision_tab$f, sep = " "),
-              "given a fixed sample size of", sep = ", "),
+              paste("The estimated compatibility interval's precision is of", round(precision_tab$f, 5), sep = " "),
+              "for a fixed sample size of", sep = " "),
             exp_size + exp_size*ratio_ene, sep = " "),
-          "design effect of", sep = ", "),
+          "a design effect of", sep = ", "),
         deff, sep = " "), "and an unexposed to exposed group size ratio of", sep = ", "),
     ratio_ene, sep = " "))
 
